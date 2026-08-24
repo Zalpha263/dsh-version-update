@@ -11,45 +11,74 @@
   - 检查失败 → 红色提示（原因）+ 重试
 - **升级提示词**：按官方更新方式生成（`npm install -g @deepseek-ai/dsh@latest` + `dsh --version` 验证 + 重启提醒），复制后粘贴给 DSH 里的 agent 即可执行升级
 
+## 前置条件
+
+- DSH（`dsh` CLI）通过 npm 全局安装，可用 `dsh plugin` 命令
+- pnpm 在 PATH 中（`dsh plugin` 依赖）
+
 ## 安装（官方流程）
 
-```powershell
-# 开发态（目录依赖，改代码即生效）：
-dsh plugin --profile web add file:D:/DeepseekPlugin/dsh-version-update
+> 官方机制：`dsh plugin --profile <profile名> add <spec>` 把参数转发给 pnpm，安装后自动把声明了 `dsh.bundle.patch` 的包加入 profile 的 bundles 层列表（注册行由插件包自带的 `cordis.patch.yml` 提供，无需手工写行）。
 
-# 发布态（GitHub 钉死提交，防回退）：
+### 发布态（推荐，钉死提交防回退）
+
+```powershell
 dsh plugin --profile web add github:Zalpha263/dsh-version-update#<完整40位commit>
 ```
 
-装完重启 DSH（改过 Host 半区必须重启；仅 Client 改动可 Ctrl+F5）。设置面板出现「版本与更新」页。
+`<完整40位commit>` 必须是已推送到 GitHub 的提交号（例如 `git ls-remote https://github.com/Zalpha263/dsh-version-update.git main` 输出的 HEAD）。钉死提交后，任何一次 install 都不会回退到旧版本。
+
+### 开发态（本地源码目录依赖）
+
+```powershell
+dsh plugin --profile web add file:<你的源码绝对路径>
+# 例如：dsh plugin --profile web add file:D:/path/to/dsh-version-update
+```
+
+安装后重启 DSH（改过 Host 半区必须重启；仅 Client 改动可 Ctrl+F5）。设置面板出现「版本与更新」页。
 
 ## 升级已有版本
 
-1. 推送新提交到 GitHub：`git push origin main`
-2. 取新提交号：`git -C D:\DeepseekPlugin\dsh-version-update rev-parse HEAD`
-3. 无 BOM 手改 profile 的 `package.json` 中钉住的提交号（`C:\Users\ASUS\.dsh\profiles\web\package.json`）
-4. `dsh plugin --profile web install` → 重启验证
+```powershell
+# 1. 推送新提交到 GitHub：
+git push origin main
+
+# 2. 取新提交号（在源码目录内执行）：
+git rev-parse HEAD
+
+# 3. 无 BOM 手改 profile 的 package.json 中钉住的提交号：
+#    <DSH_HOME>/profiles/<profile名>/package.json
+#    （Windows 默认 <DSH_HOME> = %USERPROFILE%\.dsh；无 BOM 保存，可用 PowerShell 7 的 -Encoding utf8）
+
+# 4. 官方入口重装：
+dsh plugin --profile web install
+# 5. 重启验证
+```
 
 ## 移除
 
 ```powershell
 dsh plugin --profile web remove dsh-version-update
+# bundles 列表由官方 CLI 自动对账移除；重启 DSH 后生效。
 ```
 
 ## 验证清单
 
 ```powershell
-# 1. 版本号正确
-(Get-Content "$env:USERPROFILE\.dsh\profiles\web\node_modules\dsh-version-update\package.json" | Select-String '"version"')
+# 0. 官方 CLI 自检（手改过 profile 的 package.json 后必做）：
+dsh plugin --profile web --help
 
-# 2. lockfile 钉住的是期望提交
-Select-String -Path "$env:USERPROFILE\.dsh\profiles\web\pnpm-lock.yaml" -Pattern 'dsh-version-update@'
+# 1. 版本号正确（<profile名> 换成你的 profile，如 web）：
+(Get-Content "$env:USERPROFILE\.dsh\profiles\<profile名>\node_modules\dsh-version-update\package.json" | Select-String '"version"')
 
-# 3. 服务器实际服务的 bundle 是最新
+# 2. lockfile 钉住的是期望提交：
+Select-String -Path "$env:USERPROFILE\.dsh\profiles\<profile名>\pnpm-lock.yaml" -Pattern 'dsh-version-update@'
+
+# 3. 服务器实际服务的 bundle 是最新（端口按你的实际端口，默认 3080）：
 $c = (Invoke-WebRequest http://127.0.0.1:3080/plugins/dsh-version-update/client.js).Content
 $c.Contains('vu-prompt')
 
-# 4. 启动 manifest 含包名
+# 4. 启动 manifest 含包名：
 (Invoke-WebRequest http://127.0.0.1:3080/).Content -match 'dsh-version-update'
 
 # 5. 功能抽查：设置 → 版本与更新 → 基本信息 + 检查更新 + 复制按钮
