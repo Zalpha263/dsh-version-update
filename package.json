@@ -1,6 +1,6 @@
 {
   "name": "dsh-version-update",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "版本与更新：在设置页显示 dsh 版本与环境信息，检查 npm 官方最新版本并生成升级提示词（dsh-version-update）。",
   "type": "module",
   "main": "lib/index.js",
