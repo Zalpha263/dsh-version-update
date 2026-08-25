@@ -100,6 +100,7 @@ MIT
 
 ## 版本历史
 
+- **v1.1.2**：修复 Windows 上版本信息读取失败——`npm -v` / `npm root -g` 改经 `cmd.exe`（shell）启动（npm 在 Windows 是 `.cmd` 批处理，`execFile` 无法直接启动，v1.1.1 异步化时引入此回归）；安装目录探测改为三级：`clientModules.clientPath('@deepseek-ai/dsh-client-modules')` 向上定位正在运行的 dsh 包 → 插件模块图 `require.resolve('@deepseek-ai/dsh')` → `npm root -g`（原主路径探测的 `@deepseek-ai/dsh-web-app` 不含 `dsh.client` 声明，从未生效，已替换）；npm 失败结果不再被永久缓存；"检查更新"改用 semver 语义比较，本地版本缺失时显示中性提示（不再误报"发现新版本"）；样式与设置页注册改用 `ctx.effect` 托管（HMR 卸载时正确释放）。
 - **v1.1.1**：审计加固——`npm root -g` / `npm -v` 由同步 `execSync` 改为异步 `execFile`（原实现每次打开设置页都会阻塞 Host 事件循环最多 15s）并加进程级缓存；所有 fetch 加 15s 超时（网络黑洞时不再永久停在"检查中"）；GitHub 限流（403/429）显示可读提示；复制提示词失败时回退 `execCommand('copy')` 并有反馈；修正"检查更新"在本地信息加载失败时误报"已是最新"；摘要截断避免切断 UTF-16 代理对。
 - **v1.1.0**：新增「版本历史」区块（GitHub Releases 最近 10 个版本中文摘要）。
 - **v1.0.0**：初版（版本与环境信息 + npm 更新检查 + 升级提示词复制）。
