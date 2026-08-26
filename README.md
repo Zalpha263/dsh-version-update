@@ -41,6 +41,9 @@ dsh plugin --profile web add file:<你的源码绝对路径>
 
 ## 升级已有版本
 
+> 完整发布流程（改码 → 冒烟 → 推送 → 更新钉死提交 → 重装 → 重启 → 验收）
+> 见工作区根目录《DSH-发布SOP.md》流程 A。
+
 ```powershell
 # 1. 推送新提交到 GitHub：
 git push origin main
