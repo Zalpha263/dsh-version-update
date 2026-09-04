@@ -1,6 +1,6 @@
 {
   "name": "dsh-version-update",
-  "version": "1.1.2",
+  "version": "1.2.0",
   "description": "版本与更新：在设置页显示 dsh 版本与环境信息，检查 npm 官方最新版本并生成升级提示词（dsh-version-update）。",
   "type": "module",
   "main": "lib/index.js",
@@ -11,21 +11,14 @@
   },
   "dsh": {
     "client": {
-      "platform": "web",
-      "inject": [
-        "@deepseek-ai/dsh-client-runtime",
-        "@deepseek-ai/dsh-client-connection",
-        "@deepseek-ai/dsh-api-gateway",
-        "@deepseek-ai/dsh-typert-registry",
-        "@deepseek-ai/dsh-client-ui-slots"
-      ]
+      "platform": "web"
     },
     "bundle": {
       "patch": "./cordis.patch.yml"
     }
   },
   "peerDependencies": {
-    "@deepseek-ai/dsh-typert-protocol": "^0.1.0-rc.7"
+    "@deepseek-ai/dsh-typert-protocol": "^0.1.2-rc.1"
   },
   "keywords": [
     "dsh",
