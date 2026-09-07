@@ -9,7 +9,7 @@
   - 已是最新 → 绿色提示
   - 发现新版本 → 黄色提示（当前 vs 最新）+ 升级提示词 + 一键复制
   - 检查失败 → 红色提示（原因）+ 重试
-- **升级提示词**：按官方更新方式生成（`npm install -g @deepseek-ai/dsh@latest` + `dsh --version` 验证 + 重启提醒），复制后粘贴给 DSH 里的 agent 即可执行升级
+- **升级提示词**：按官方更新方式生成（`npm install -g @deepseek-ai/dsh@<精确目标版本>` + `dsh --version` 验证 + 重启提醒），复制后粘贴给 DSH 里的 agent 即可执行升级；v1.2.1 起提示词固定使用检查到的精确版本号（不再使用 `@latest`，避免 npm 的 latest 标签指向旧发行线导致静默降级）
 - **版本历史**：查看官方 GitHub Releases 最近 10 个版本的中文摘要（GitHub API，受官方限流影响时给出提示）；点击可跳转完整说明
 - **健壮性（v1.1.1）**：npm 查询异步化（不阻塞 Host 事件循环）、所有网络请求带 15s 超时、GitHub 限流（403/429）显示可读提示、复制失败自动回退 `execCommand('copy')`
 
@@ -103,6 +103,7 @@ MIT
 
 ## 版本历史
 
+- **v1.2.1**：升级提示词加固——① 提示词第 2 步由 `npm install -g @deepseek-ai/dsh@latest` 改为固定精确版本 `npm install -g @deepseek-ai/dsh@<目标版本>`（与第 3 步的 `dsh --version` 验证目标一致；原写法解析 npm 的 latest 标签，可能在检查与执行之间变化甚至静默降级到旧发行线），提示词中显式提醒"必须使用精确版本号，不要用 @latest"；② "当前已是最新版本"提示由显示 npm 查询值改为显示本地实际运行版本（本地版本高于 npm 标签时不再显示更旧的数字——与"展示两者中较新者"的判定口径一致）。
 - **v1.2.0**：适配 DSH 0.1.2-rc.1——清理 `dsh.client.inject` 中已移除/并入运行时的包名（`dsh-client-runtime`、`dsh-client-ui-slots` 等，模块表对新包名静默跳过但按新契约不应声明）、`dsh-typert-protocol` peer 升至 `^0.1.2-rc.1`（旧 `^0.1.0-rc.7` 按 semver 预发布规则不匹配）；主机与客户端接口逐项与 0.1.2-rc.1 核对通过（clientModules.clientPath / Remote SRC 发现 / settings.section 槽位）；代码去重（`strictCodec` 合并 `passthroughSchema`、抽取共享补零函数），无行为变化。
 - **v1.1.2**：修复 Windows 上版本信息读取失败——`npm -v` / `npm root -g` 改经 `cmd.exe`（shell）启动（npm 在 Windows 是 `.cmd` 批处理，`execFile` 无法直接启动，v1.1.1 异步化时引入此回归）；安装目录探测改为三级：`clientModules.clientPath('@deepseek-ai/dsh-client-modules')` 向上定位正在运行的 dsh 包 → 插件模块图 `require.resolve('@deepseek-ai/dsh')` → `npm root -g`（原主路径探测的 `@deepseek-ai/dsh-web-app` 不含 `dsh.client` 声明，从未生效，已替换）；npm 失败结果不再被永久缓存；"检查更新"改用 semver 语义比较，本地版本缺失时显示中性提示（不再误报"发现新版本"）；样式与设置页注册改用 `ctx.effect` 托管（HMR 卸载时正确释放）。
 - **v1.1.1**：审计加固——`npm root -g` / `npm -v` 由同步 `execSync` 改为异步 `execFile`（原实现每次打开设置页都会阻塞 Host 事件循环最多 15s）并加进程级缓存；所有 fetch 加 15s 超时（网络黑洞时不再永久停在"检查中"）；GitHub 限流（403/429）显示可读提示；复制提示词失败时回退 `execCommand('copy')` 并有反馈；修正"检查更新"在本地信息加载失败时误报"已是最新"；摘要截断避免切断 UTF-16 代理对。
