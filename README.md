@@ -63,6 +63,10 @@ dsh plugin --profile web --help
 
 ## 更新日志
 
+### v1.2.2
+- 变更：peer 依赖对齐 `@deepseek-ai/dsh-typert-protocol ^0.1.5-rc.2`（0.1.5-rc.2 复核：`Remote` / `TypertRemoteService` 标记协议、`ctx.remote.$mount` + `RemoteResult` 信封、`settings.section` 槽位、`clientModules.clientPath`、`__ModuleLoader__` 包格式与全部 `--dsw-*` token 均未变）。
+- 说明：本插件 Host/Client 两半区在 0.1.2-rc.1 → 0.1.5-rc.2 期间没有需要适配的接口变更。
+
 ### v1.2.1
 - 修复：升级提示词改用检查到的精确版本号，不再用 `@latest`，避免静默降级到旧发行线。
 - 修复：本地版本高于 npm 标签时，「已是最新」不再显示更旧的数字。

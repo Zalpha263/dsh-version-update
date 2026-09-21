@@ -1,6 +1,6 @@
 {
   "name": "dsh-version-update",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "版本与更新：在设置页显示 dsh 版本与环境信息，检查 npm 官方最新版本并生成升级提示词（dsh-version-update）。",
   "type": "module",
   "main": "lib/index.js",
@@ -18,7 +18,7 @@
     }
   },
   "peerDependencies": {
-    "@deepseek-ai/dsh-typert-protocol": "^0.1.2-rc.1"
+    "@deepseek-ai/dsh-typert-protocol": "^0.1.5-rc.2"
   },
   "keywords": [
     "dsh",
