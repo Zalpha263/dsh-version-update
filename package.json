@@ -1,13 +1,17 @@
 {
   "name": "dsh-version-update",
-  "version": "1.2.2",
-  "description": "版本与更新：在设置页显示 dsh 版本与环境信息，检查 npm 官方最新版本并生成升级提示词（dsh-version-update）。",
+  "version": "1.3.0",
+  "description": "版本与更新：在设置页显示 dsh 版本与环境信息，分渠道检查 npm 官方正式版（latest）与 Alpha 预览版（alpha）并生成各自的升级提示词（dsh-version-update）。",
   "type": "module",
   "main": "lib/index.js",
   "exports": {
     ".": "./lib/index.js",
     "./client": "./lib/client.js",
+    "./version": "./lib/version.js",
     "./package.json": "./package.json"
+  },
+  "scripts": {
+    "test": "node test/version.test.mjs"
   },
   "dsh": {
     "client": {
@@ -26,11 +30,13 @@
     "web-ui",
     "version",
     "update",
+    "alpha",
     "plugin"
   ],
   "license": "MIT",
   "files": [
     "lib",
+    "test",
     "README.md",
     "LICENSE",
     "cordis.patch.yml"
