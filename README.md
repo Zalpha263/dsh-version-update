@@ -80,6 +80,10 @@ dsh plugin --profile web remove dsh-version-update
 
 ## 更新日志
 
+### v1.3.1
+- 修复：DSH 0.1.7 的 Typert codec 契约变更（strict codec 必须带 `create()` 工厂），`versionUpdate` 的 Remote namespace 挂载失败，「版本与更新」取不到数据；`strictCodec()` 改为提供 `create`。peer 对齐 `^0.1.7-alpha.2`。
+- 复核：`lib/version.js` 与 `lib/client.js` 的 `__VERSION_BEGIN__/__VERSION_END__` 漂移守卫区域未受影响，`npm test` 14/14 通过。
+
 ### v1.3.0
 - 「检查更新」拆分为**官方正式版（latest）与 Alpha 预览版（alpha）双渠道**，一次检查同时给出两个渠道的版本、状态与各自的升级提示词；新增 `checkChannels` 远程方法（`checkUpdate` 保留兼容），单渠道失败互不影响。
 - 「基本信息」新增「当前渠道」；新增渠道感知的判定规则：**Alpha 用户不会被提示降级**，只有正式线发布更高版本号时才提供切回正式版的覆盖安装提示词。
