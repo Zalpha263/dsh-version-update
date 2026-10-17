@@ -60,7 +60,7 @@
 
 ## 安装
 
-要求：DSH 运行时 **`>=0.2.0-rc.1 <0.3.0-0`** —— `package.json` 的 `engines.dsh`（官方兼容性闸门的首选声明，有它时闸门忽略 peer 范围），同时保留 `@deepseek-ai/dsh-typert-protocol` 的 `peerDependencies`/`devDependencies` 供包管理器与真实依赖使用。**兼容目标与已核对宿主**（静态契约核对，安装后仍需在目标宿主冒烟）：DSH `0.2.0-rc.2`（npm 全局 web profile）与 DSH `0.2.1-rc.1`（桌面应用内建运行时，Electron 44 / Node 24；其 `process.resourcesPath` / `app.asar` 与 `pluginPackages` 路径已按运行时源码和只读探测核对）。dsh 已通过 npm 全局安装、能用 `dsh plugin`，并且 [pnpm](https://pnpm.io/zh/) 在 PATH 中。
+要求：DSH 运行时 **`>=0.2.0-rc.1 <0.3.0-0`** —— `package.json` 的 `engines.dsh`（官方兼容性闸门的首选声明，有它时闸门忽略 peer 范围），同时保留 `@deepseek-ai/dsh-typert-protocol` 的 `peerDependencies`/`devDependencies` 供包管理器与真实依赖使用。**兼容目标与已核对宿主**（静态契约核对，安装后仍需在目标宿主冒烟）：DSH `0.2.0-rc.2`（npm 全局 web profile）与 DSH `0.2.1-rc.2`（桌面应用当前内建运行时，Electron 44 / Node 24；上一轮静态核对基线 `0.2.1-rc.1`；其 `process.resourcesPath` / `app.asar` 与 `pluginPackages` 路径已按运行时源码和只读探测核对）。dsh 已通过 npm 全局安装、能用 `dsh plugin`，并且 [pnpm](https://pnpm.io/zh/) 在 PATH 中。
 
 > 桌面应用（`desktop` profile）由 Electron 独占，`dsh plugin --profile desktop` 会被 CLI 拒绝；桌面侧请在应用内「插件」页安装。
 
