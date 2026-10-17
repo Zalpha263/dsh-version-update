@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Version & Updates",
+    "description": "Show the running dsh version and environment, resolve the official stable and Alpha channels, and generate an upgrade prompt for each."
+  }
+}

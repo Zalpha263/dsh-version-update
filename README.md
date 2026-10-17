@@ -44,7 +44,9 @@
 
 ## 安装
 
-要求：dsh 已通过 npm 全局安装、能用 `dsh plugin`，并且 [pnpm](https://pnpm.io/zh/) 在 PATH 中。
+要求：DSH `>=0.2.0-rc.1 <0.3.0`（v1.4.0 起；**旧版 `^0.1.7-rc.1` 会被官方兼容性闸门在安装前直接拒绝**——已有真实拒绝日志），dsh 已通过 npm 全局安装、能用 `dsh plugin`，并且 [pnpm](https://pnpm.io/zh/) 在 PATH 中。
+
+> 桌面应用（`desktop` profile）由 Electron 独占，`dsh plugin --profile desktop` 会被 CLI 拒绝；桌面侧请在应用内「插件」页安装。
 
 ```bash
 # 发布态：钉死提交，任何一次 install 都不会回退到旧版本
@@ -77,7 +79,6 @@ dsh plugin --profile web remove dsh-version-update
 - `lib/index.js` —— Host 半区，`TypertRemoteService` + 手工 `@Remote` 标记，注册 `versionUpdate` 服务：
   - `info` —— 本地版本 / 安装路径 / Node / npm / 平台 / 数据目录 + 诊断；
   - `checkChannels` —— **一次请求取回全部 dist-tag**（`latest` / `next` / `alpha` …），每个渠道取「属于该渠道的最高版本」，返回 `{ checkedAt, channels: { stable, alpha }, distTags, distTagsError }`；每个渠道自带 `version` / `sourceTag` / `latestVersion` / `error`。取整批失败时自动回退到 `latest` + `alpha` 两个单标签查询。
-  - `checkUpdate` —— 只查 `latest` 的旧接口，**为兼容可能被缓存的旧客户端 bundle 而保留**，语义刻意不变（`latest` ≠ 正式版线），新界面不再使用；
   - `releases` —— 官方 GitHub Releases 摘要。
 - `lib/client.js` —— Client 半区，`__ModuleLoader__.load` 格式，注册设置页入口；两个渠道块共用 `channelView()` 的渲染结果，界面里不重复判定逻辑。
 - `lib/version.js` —— 纯函数（语义化版本比较、渠道识别、判定、提示词模板），**可单测的那一份**。
@@ -88,6 +89,14 @@ dsh plugin --profile web remove dsh-version-update
 版本与安装路径发现分三级：`clientModules.clientPath('@deepseek-ai/dsh-client-modules')` → 插件模块图的 `require.resolve('@deepseek-ai/dsh')` → `npm root -g`。任何一步失败都会降级为 `null` 并显示「诊断：」行。改完源码：Host 重启 DSH，Client 刷新页面，无需构建。
 
 ## 更新日志
+
+### v1.4.0
+- **修复（peer 范围）**：`^0.1.7-rc.1` → **`>=0.2.0-rc.1 <0.3.0`** —— 原范围导致 `0.2.0-rc.1` / `rc.2` 上安装被官方闸门直接拒绝（已有真实拒绝日志）；并补上 `devDependencies` 镜像。
+- 删除 `checkUpdate()` 宿主方法与客户端描述符：仅供 pre-1.3.0 的缓存客户端，早已不可达。
+- `findDshRoot()` 新增桌面 app.asar 探针 `<process.resourcesPath>/app.asar/dsh/node_modules/@deepseek-ai/dsh`，修正桌面下版本识别失败 / 误报 npm 全局版本的问题；面板显示「探测来源」。
+- `summarizeBody` 中文段切分新增 `<h3 id="en-` 边界（现行 release body 没有 `---` 分隔符）。
+- 清理注释里写死的 `0.1.5-rc.3` / `0.1.7-rc.1` dist-tag 举例；新增 locale 元数据。
+- 验证：`npm test` 18/18 通过（含两条 client/version 漂移守卫）。
 
 ### v1.3.3
 - 迁移：对齐 DSH `0.1.7-rc.1`（自 `0.1.7-alpha.2`）。本插件用到的 `clientModules.clientPath()`、`slots.inject` / `slots.register`、`ctx.remote.$mount`（CONTRIBUTION 校验逻辑在 `alpha.2 → rc.1` 逐字节未变）与 `@deepseek-ai/dsh-typert-protocol` 的 Remote 契约均未变，无需改接口代码。peer 对齐 `^0.1.7-rc.1`。
