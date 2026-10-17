@@ -1,9 +1,10 @@
 {
   "name": "dsh-version-update",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "版本与更新：在设置页显示 dsh 版本与环境信息，按 dist-tag 全量解析官方正式版与 Alpha 预览版并生成各自的升级提示词（dsh-version-update）。",
   "type": "module",
   "main": "lib/index.js",
+  "icon": "./icon.svg",
   "exports": {
     ".": "./lib/index.js",
     "./client": "./lib/client.js",
@@ -13,6 +14,9 @@
   },
   "scripts": {
     "test": "node test/version.test.mjs"
+  },
+  "engines": {
+    "dsh": ">=0.2.0-rc.1 <0.3.0-0"
   },
   "dsh": {
     "client": {
@@ -26,7 +30,7 @@
     "@deepseek-ai/dsh-typert-protocol": ">=0.2.0-rc.1 <0.3.0"
   },
   "devDependencies": {
-    "@deepseek-ai/dsh-typert-protocol": ">=0.2.0-rc.1 <0.3.0"
+    "@deepseek-ai/dsh-typert-protocol": "0.2.1-rc.1"
   },
   "keywords": [
     "dsh",
@@ -42,6 +46,7 @@
     "lib",
     "locale",
     "test",
+    "icon.svg",
     "README.md",
     "LICENSE",
     "cordis.patch.yml"

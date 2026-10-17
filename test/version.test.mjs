@@ -22,6 +22,7 @@ import {
 	channelLabel,
 	decideChannel,
 	chooseChannel,
+	promptTargetOf,
 	buildStablePrompt,
 	buildAlphaPrompt,
 	buildRollbackPrompt,
@@ -29,6 +30,17 @@ import {
 	newestByChannel,
 	resolveChannelResults
 } from '../lib/version.js';
+import { findDshRoot, installEnvironmentOf } from '../lib/probe.js';
+
+// Every prompt/channel test written before v1.4.1 describes the npm-global CLI
+// install, which was the only install source the plugin knew. Pin that source
+// explicitly so those tests keep specifying the CLI contract; the desktop and
+// unknown-source variants are covered by their own tests below.
+const CLI_INSTALL = { installSource: 'npmRoot' };
+const cliStablePrompt = (input) => buildStablePrompt({ ...CLI_INSTALL, ...input });
+const cliAlphaPrompt = (input) => buildAlphaPrompt({ ...CLI_INSTALL, ...input });
+const cliRollbackPrompt = (input) => buildRollbackPrompt({ ...CLI_INSTALL, ...input });
+const cliChannelView = (input) => channelView({ ...CLI_INSTALL, ...input });
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const clientSource = readFileSync(path.join(here, '..', 'lib', 'client.js'), 'utf8');
@@ -182,7 +194,7 @@ test('chooseChannel prefers an explicit channel and infers from the version othe
 });
 
 test('buildStablePrompt pins the exact target and carries a rollback command', () => {
-	const prompt = buildStablePrompt({ localVersion: '0.1.5-rc.2', localChannel: 'stable', target: '0.1.7-rc.1' });
+	const prompt = cliStablePrompt({ localVersion: '0.1.5-rc.2', localChannel: 'stable', target: '0.1.7-rc.1' });
 	assert.match(prompt, /npm install -g @deepseek-ai\/dsh@0\.1\.7-rc\.1/);
 	assert.match(prompt, /dsh --version/);
 	assert.match(prompt, /回退命令：npm install -g @deepseek-ai\/dsh@0\.1\.5-rc\.2/);
@@ -198,7 +210,7 @@ test('buildStablePrompt pins the exact target and carries a rollback command', (
 test('buildStablePrompt: an undetectable local version still yields a usable prompt', () => {
 	// "Return to the stable line at any time" must not depend on version
 	// detection: the prompt goes neutral instead of refusing to target a build.
-	const neutral = buildStablePrompt({ localVersion: null, localChannel: null, target: '0.1.7-rc.1' });
+	const neutral = cliStablePrompt({ localVersion: null, localChannel: null, target: '0.1.7-rc.1' });
 	assert.match(neutral, /切换到官方正式版 0\.1\.7-rc\.1/);
 	assert.match(neutral, /本机版本未能识别/);
 	assert.match(neutral, /npm install -g @deepseek-ai\/dsh@0\.1\.7-rc\.1/);
@@ -211,7 +223,7 @@ test('buildStablePrompt: an undetectable local version still yields a usable pro
 
 test('buildStablePrompt: alpha→stable calls the line switch what it is', () => {
 	// Newer stable target: a line switch that also moves the version UP.
-	const upgrade = buildStablePrompt({ localVersion: '0.1.7-alpha.1', localChannel: 'alpha', target: '0.1.7-rc.2' });
+	const upgrade = cliStablePrompt({ localVersion: '0.1.7-alpha.1', localChannel: 'alpha', target: '0.1.7-rc.2' });
 	assert.match(upgrade, /从 Alpha 预览线路切回官方正式版线路/);
 	assert.match(upgrade, /目标版本高于当前 Alpha，属于升级/);
 	assert.ok(!/降级\/回退/.test(upgrade), 'an rc above the running alpha is not a downgrade');
@@ -224,12 +236,12 @@ test('buildStablePrompt: alpha→stable calls the line switch what it is', () =>
 	assert.match(upgrade, /\n5\. 确认后提醒/);
 
 	// Older stable target: still the line switch, honestly labelled a rollback.
-	const rollback = buildStablePrompt({ localVersion: '0.1.7-alpha.1', localChannel: 'alpha', target: '0.1.5-rc.3' });
+	const rollback = cliStablePrompt({ localVersion: '0.1.7-alpha.1', localChannel: 'alpha', target: '0.1.5-rc.3' });
 	assert.match(rollback, /目标版本低于当前 Alpha，属于降级\/回退/);
 });
 
 test('buildAlphaPrompt warns about the preview line and always offers the way back', () => {
-	const prompted = buildAlphaPrompt({ localVersion: '0.1.5-rc.2', localChannel: 'stable', target: '0.1.7-alpha.1' });
+	const prompted = cliAlphaPrompt({ localVersion: '0.1.5-rc.2', localChannel: 'stable', target: '0.1.7-alpha.1' });
 	assert.match(prompted, /npm install -g @deepseek-ai\/dsh@0\.1\.7-alpha\.1/);
 	assert.match(prompted, /开发者预览通道/);
 	assert.match(prompted, /可能包含破坏兼容性的变更/);
@@ -252,7 +264,7 @@ test('buildAlphaPrompt warns about the preview line and always offers the way ba
 	assert.match(prompted, /\n7\. 如遇到插件或会话异常/);
 	assert.ok(!/\n8\. /.test(prompted), 'no step 8 may be left behind');
 
-	const sameLine = buildAlphaPrompt({ localVersion: '0.1.6-alpha.1', localChannel: 'alpha', target: '0.1.7-alpha.1' });
+	const sameLine = cliAlphaPrompt({ localVersion: '0.1.6-alpha.1', localChannel: 'alpha', target: '0.1.7-alpha.1' });
 	assert.ok(!/从正式版线路切换到 Alpha 预览线路/.test(sameLine), 'alpha→alpha must not claim a channel switch');
 	assert.ok(!/备份/.test(sameLine), 'alpha→alpha must not ask for a backup either');
 	assert.match(sameLine, /npm install -g @deepseek-ai\/dsh@0\.1\.7-alpha\.1/);
@@ -261,7 +273,7 @@ test('buildAlphaPrompt warns about the preview line and always offers the way ba
 });
 
 test('buildRollbackPrompt is explicit about the downgrade and the pinned target', () => {
-	const prompt = buildRollbackPrompt({ target: '0.1.5-rc.2', currentVersion: '0.1.7-alpha.1', currentChannel: 'alpha' });
+	const prompt = cliRollbackPrompt({ target: '0.1.5-rc.2', currentVersion: '0.1.7-alpha.1', currentChannel: 'alpha' });
 	assert.match(prompt, /切回官方正式版 0\.1\.5-rc\.2/);
 	assert.match(prompt, /降级\/回退操作/);
 	assert.match(prompt, /npm install -g @deepseek-ai\/dsh@0\.1\.5-rc\.2/);
@@ -270,7 +282,7 @@ test('buildRollbackPrompt is explicit about the downgrade and the pinned target'
 test('buildRollbackPrompt names the right origin line', () => {
 	// From a stable build that runs ahead of the channel: it is NOT an alpha
 	// install, so the prompt must not claim an "Alpha 线路" switch.
-	const fromStable = buildRollbackPrompt({ target: '0.1.5-rc.3', currentVersion: '0.1.7-rc.1', currentChannel: 'stable' });
+	const fromStable = cliRollbackPrompt({ target: '0.1.5-rc.3', currentVersion: '0.1.7-rc.1', currentChannel: 'stable' });
 	assert.match(fromStable, /回退到正式版渠道当前版本 0\.1\.5-rc\.3/);
 	assert.match(fromStable, /本机版本高于渠道当前版本/);
 	assert.match(fromStable, /降级\/回退操作/);
@@ -324,12 +336,12 @@ test('resolveChannelResults reports each channel target with its provenance', ()
 });
 
 test('channelView is the single source of truth for the two blocks', () => {
-	const stableBlock = channelView({ channel: 'stable', target: '0.1.5-rc.2', localVersion: '0.1.5-rc.2', localChannel: 'stable' });
+	const stableBlock = cliChannelView({ channel: 'stable', target: '0.1.5-rc.2', localVersion: '0.1.5-rc.2', localChannel: 'stable' });
 	assert.equal(stableBlock.decision, 'current');
 	assert.equal(stableBlock.statusKind, 'ok');
 	assert.equal(stableBlock.prompt, null);
 
-	const alphaUpdate = channelView({ channel: 'alpha', target: '0.1.7-alpha.1', localVersion: '0.1.5-rc.2', localChannel: 'stable' });
+	const alphaUpdate = cliChannelView({ channel: 'alpha', target: '0.1.7-alpha.1', localVersion: '0.1.5-rc.2', localChannel: 'stable' });
 	assert.equal(alphaUpdate.decision, 'update');
 	assert.equal(alphaUpdate.statusKind, 'update');
 	assert.match(alphaUpdate.prompt, /npm install -g @deepseek-ai\/dsh@0\.1\.7-alpha\.1/);
@@ -338,7 +350,7 @@ test('channelView is the single source of truth for the two blocks', () => {
 	// While on alpha the stable block is NEVER prompt-less. A newer stable
 	// target is an update — the exact report: 0.1.7-alpha.2 installed while the
 	// stable line already published 0.1.7-rc.1 (npm `next`) …
-	const stableUpgradeWhileAlpha = channelView({
+	const stableUpgradeWhileAlpha = cliChannelView({
 		channel: 'stable',
 		target: '0.1.7-rc.1',
 		localVersion: '0.1.7-alpha.2',
@@ -357,7 +369,7 @@ test('channelView is the single source of truth for the two blocks', () => {
 
 	// … while an OLDER stable target offers the labelled switch-back prompt
 	// instead of a silent "you are ahead, do nothing".
-	const stableWhileAlpha = channelView({ channel: 'stable', target: '0.1.5-rc.2', localVersion: '0.1.7-alpha.1', localChannel: 'alpha' });
+	const stableWhileAlpha = cliChannelView({ channel: 'stable', target: '0.1.5-rc.2', localVersion: '0.1.7-alpha.1', localChannel: 'alpha' });
 	assert.equal(stableWhileAlpha.decision, 'switch');
 	assert.equal(stableWhileAlpha.promptLabel, '切回正式版提示词（复制后粘贴给 DeepSeek）');
 	assert.match(stableWhileAlpha.prompt, /切回官方正式版 0\.1\.5-rc\.2/);
@@ -366,7 +378,7 @@ test('channelView is the single source of truth for the two blocks', () => {
 	// No provenance note when the target IS the `latest` tag (nothing to explain).
 	assert.equal(stableWhileAlpha.note, null);
 
-	const unknownLocal = channelView({ channel: 'stable', target: '0.1.7-rc.1', localVersion: null, localChannel: null });
+	const unknownLocal = cliChannelView({ channel: 'stable', target: '0.1.7-rc.1', localVersion: null, localChannel: null });
 	assert.equal(unknownLocal.decision, 'uncomparable');
 	// Confirmed policy: a known stable target stays actionable even when the
 	// local version could not be detected — the prompt goes neutral instead of
@@ -380,13 +392,13 @@ test('channelView is the single source of truth for the two blocks', () => {
 	assert.match(unknownLocal.status, /可复制下方提示词/);
 
 	// The alpha block stays prompt-less when nothing can be compared.
-	const unknownAlpha = channelView({ channel: 'alpha', target: '0.1.7-alpha.1', localVersion: null, localChannel: null });
+	const unknownAlpha = cliChannelView({ channel: 'alpha', target: '0.1.7-alpha.1', localVersion: null, localChannel: null });
 	assert.equal(unknownAlpha.decision, 'uncomparable');
 	assert.equal(unknownAlpha.prompt, null);
 
 	// A build ahead of the stable channel (Q2): not an upgrade, but the user
 	// can still return to the exact published channel version.
-	const stableAhead = channelView({ channel: 'stable', target: '0.1.5-rc.3', localVersion: '0.1.7-rc.1', localChannel: 'stable' });
+	const stableAhead = cliChannelView({ channel: 'stable', target: '0.1.5-rc.3', localVersion: '0.1.7-rc.1', localChannel: 'stable' });
 	assert.equal(stableAhead.decision, 'ahead');
 	assert.equal(stableAhead.promptLabel, '切回渠道版本提示词（复制后粘贴给 DeepSeek）');
 	assert.match(stableAhead.prompt, /回退到正式版渠道当前版本 0\.1\.5-rc\.3/);
@@ -395,12 +407,184 @@ test('channelView is the single source of truth for the two blocks', () => {
 	assert.match(stableAhead.status, /如需回到渠道当前版本/);
 
 	// The alpha block keeps its neutral note when the running build leads it.
-	const alphaAhead = channelView({ channel: 'alpha', target: '0.1.6-alpha.2', localVersion: '0.1.7-alpha.1', localChannel: 'alpha' });
+	const alphaAhead = cliChannelView({ channel: 'alpha', target: '0.1.6-alpha.2', localVersion: '0.1.7-alpha.1', localChannel: 'alpha' });
 	assert.equal(alphaAhead.decision, 'ahead');
 	assert.equal(alphaAhead.prompt, null);
 
-	const missing = channelView({ channel: 'alpha', target: null, localVersion: '0.1.5-rc.2', localChannel: 'stable' });
+	const missing = cliChannelView({ channel: 'alpha', target: null, localVersion: '0.1.5-rc.2', localChannel: 'stable' });
 	assert.equal(missing.decision, null);
 	assert.equal(missing.prompt, null);
 	assert.equal(missing.status, '');
+});
+
+test('promptTargetOf picks the updater from the authoritative environment first', () => {
+	// The Host's installEnvironment is authoritative when present.
+	assert.equal(promptTargetOf('clientModules', 'desktop'), 'desktop');
+	assert.equal(promptTargetOf('desktopApp', 'cli'), 'cli');
+	assert.equal(promptTargetOf('pluginPackages', 'desktop'), 'desktop');
+	assert.equal(promptTargetOf('pluginPackages', 'cli'), 'cli');
+
+	// Probe names are the fallback for a Host built before installEnvironment.
+	assert.equal(promptTargetOf('desktopApp'), 'desktop');
+	assert.equal(promptTargetOf('clientModules'), 'cli');
+	assert.equal(promptTargetOf('require'), 'cli');
+	assert.equal(promptTargetOf('npmRoot'), 'cli');
+	// 0.2.1's pluginPackages resolves either tree; without an environment or an
+	// app.asar path the source is genuinely unknown, never guessed as CLI.
+	assert.equal(promptTargetOf('pluginPackages'), 'unknown');
+	assert.equal(promptTargetOf('pluginPackages', null, 'C:/Program Files/App/resources/app.asar/dsh/node_modules/@deepseek-ai/dsh'), 'desktop');
+	assert.equal(promptTargetOf('pluginPackages', null, 'C:/Users/me/AppData/Roaming/npm/node_modules/@deepseek-ai/dsh'), 'unknown');
+	assert.equal(promptTargetOf(null, null, null), 'unknown');
+	assert.equal(promptTargetOf(undefined), 'unknown');
+});
+
+test('desktopApp prompts update inside the app and never tell users to npm install -g', () => {
+	const stable = buildStablePrompt({
+		installSource: 'desktopApp',
+		localVersion: '0.2.0-rc.2',
+		localChannel: 'stable',
+		target: '0.2.1-rc.1'
+	});
+	// The regression this guards: the desktop runtime lives in app.asar, so an
+	// npm-global install would update a different tree and never the app.
+	assert.ok(!stable.includes('npm install -g'), 'desktop prompt must not offer an npm-global install');
+	assert.match(stable, /桌面应用内/);
+	assert.match(stable, /检查更新…/);
+	assert.match(stable, /应用菜单/);
+	assert.match(stable, /\$DSH_HOME/);
+	assert.ok(!/重启 dsh web/.test(stable), 'desktop prompt must not ask to restart dsh web');
+	assert.match(stable, /0\.2\.1-rc\.1/);
+
+	// Alpha on desktop: same in-app route, plus the preview warning.
+	const alpha = buildAlphaPrompt({
+		installSource: 'desktopApp',
+		localVersion: '0.2.0-rc.2',
+		localChannel: 'stable',
+		target: '0.2.1-alpha.1'
+	});
+	assert.ok(!alpha.includes('npm install -g'), 'desktop alpha prompt must not offer an npm-global install');
+	assert.match(alpha, /桌面应用内/);
+	assert.match(alpha, /检查更新…/);
+	assert.match(alpha, /开发者预览通道/);
+	assert.ok(!/重启 dsh web/.test(alpha));
+
+	// Rollback on desktop: no npm-global fallback either.
+	const rollback = buildRollbackPrompt({
+		installSource: 'desktopApp',
+		currentVersion: '0.2.1-alpha.1',
+		currentChannel: 'alpha',
+		target: '0.2.0-rc.2'
+	});
+	assert.ok(!rollback.includes('npm install -g'), 'desktop rollback prompt must not offer an npm-global install');
+	assert.match(rollback, /桌面应用内/);
+	assert.match(rollback, /降级\/回退操作/);
+
+	// installEnvironment is authoritative even when the probe name looks like CLI,
+	// and the app.asar path fallback works for a pluginPackages hit.
+	const viaEnvironment = buildStablePrompt({
+		installSource: 'pluginPackages',
+		installEnvironment: 'desktop',
+		localVersion: '0.2.0-rc.2',
+		localChannel: 'stable',
+		target: '0.2.1-rc.1'
+	});
+	assert.ok(!viaEnvironment.includes('npm install -g'));
+	const viaAsarPath = buildStablePrompt({
+		installSource: 'pluginPackages',
+		installPath: 'C:/Program Files/App/resources/app.asar/dsh/node_modules/@deepseek-ai/dsh',
+		localVersion: '0.2.0-rc.2',
+		localChannel: 'stable',
+		target: '0.2.1-rc.1'
+	});
+	assert.ok(!viaAsarPath.includes('npm install -g'));
+});
+
+test('channelView forwards install facts into the prompts', () => {
+	const desktop = channelView({
+		channel: 'stable',
+		target: '0.2.1-rc.1',
+		localVersion: '0.2.0-rc.2',
+		localChannel: 'stable',
+		installSource: 'desktopApp',
+		installEnvironment: 'desktop'
+	});
+	assert.equal(desktop.decision, 'update');
+	assert.ok(!desktop.prompt.includes('npm install -g'), 'the desktop block must render the in-app prompt');
+	assert.match(desktop.prompt, /检查更新…/);
+	// The alpha→stable line-switch status must not claim an npm overwrite on desktop.
+	assert.doesNotMatch(desktop.status, /覆盖安装/);
+
+	const cli = channelView({
+		channel: 'stable',
+		target: '0.2.1-rc.1',
+		localVersion: '0.2.0-rc.2',
+		localChannel: 'stable',
+		installSource: 'npmRoot',
+		installEnvironment: 'cli'
+	});
+	assert.match(cli.prompt, /npm install -g @deepseek-ai\/dsh@0\.2\.1-rc\.1/);
+	assert.match(cli.prompt, /重启 dsh web/);
+	assert.match(cli.status, /发现新版本/);
+});
+
+test('an unknown install source offers both updaters, each labelled', () => {
+	const stable = buildStablePrompt({ localVersion: '0.2.0-rc.2', localChannel: 'stable', target: '0.2.1-rc.1' });
+	assert.match(stable, /未能识别 dsh 的安装来源/);
+	assert.match(stable, /桌面应用内运行/);
+	assert.match(stable, /npm 全局安装/);
+	assert.match(stable, /npm install -g @deepseek-ai\/dsh@0\.2\.1-rc\.1/);
+	// Both routes are described; neither is presented as the only truth.
+	assert.match(stable, /二选一/);
+
+	const alpha = buildAlphaPrompt({ localVersion: '0.2.0-rc.2', localChannel: 'stable', target: '0.2.1-alpha.1' });
+	assert.match(alpha, /未能识别 dsh 的安装来源/);
+	assert.match(alpha, /npm install -g @deepseek-ai\/dsh@0\.2\.1-alpha\.1/);
+	assert.match(alpha, /检查更新…/);
+
+	const rollback = buildRollbackPrompt({ target: '0.2.0-rc.2', currentVersion: '0.2.1-alpha.1', currentChannel: 'alpha' });
+	assert.match(rollback, /未能识别 dsh 的安装来源/);
+	assert.match(rollback, /npm install -g @deepseek-ai\/dsh@0\.2\.0-rc\.2/);
+
+	// An explicit CLI environment still wins over an unknown source: the prompt
+	// must not hedge when the Host actually knows the install tree.
+	const cli = buildStablePrompt({ installEnvironment: 'cli', localVersion: '0.2.0-rc.2', localChannel: 'stable', target: '0.2.1-rc.1' });
+	assert.ok(!/未能识别 dsh 的安装来源/.test(cli));
+	assert.match(cli, /官方安装命令/);
+});
+
+test('probe: the 0.2.1 pluginPackages hit wins and classifies the desktop tree', async () => {
+	const debug = [];
+	const found = await findDshRoot({
+		get: (key) => key === 'pluginPackages'
+			? { packageOf: () => ({ dir: 'C:/Program Files/App/resources/app.asar/dsh/node_modules/@deepseek-ai/dsh', version: '0.2.1-rc.1' }) }
+			: undefined
+	}, debug);
+	assert.equal(found.source, 'pluginPackages');
+	assert.equal(found.environment, 'desktop');
+	assert.ok(found.root.endsWith(path.sep), 'the install root keeps the trailing separator convention');
+	assert.deepEqual(debug, [], 'a successful probe must not add diagnostics');
+});
+
+test('probe: installEnvironmentOf separates desktop resources from npm-global trees', () => {
+	// The desktop app keeps its runtime below process.resourcesPath (inside
+	// app.asar when packaged); an npm-global tree does not.
+	assert.equal(installEnvironmentOf('C:/Program Files/App/resources/app.asar/dsh/node_modules/@deepseek-ai/dsh'), 'desktop');
+	assert.equal(installEnvironmentOf('C:/Users/me/AppData/Roaming/npm/node_modules/@deepseek-ai/dsh'), 'cli');
+});
+
+test('manifest declares the DSH engines range and ships the monochrome icon', () => {
+	const pkg = JSON.parse(readFileSync(path.join(here, '..', 'package.json'), 'utf8'));
+	// The official compatibility gate reads engines.dsh when present; the typert
+	// peer stays for package managers and the real dependency.
+	assert.equal(pkg.version, '1.4.1');
+	assert.equal(pkg.engines && pkg.engines.dsh, '>=0.2.0-rc.1 <0.3.0-0');
+	assert.ok(pkg.peerDependencies && pkg.peerDependencies['@deepseek-ai/dsh-typert-protocol']);
+	assert.equal(pkg.icon, './icon.svg');
+	assert.ok(Array.isArray(pkg.files) && pkg.files.includes('icon.svg'), 'icon.svg must ship in the package');
+	const svg = readFileSync(path.join(here, '..', 'icon.svg'), 'utf8');
+	assert.match(svg, /viewBox="0 0 16 16"/);
+	assert.match(svg, /fill="none"/);
+	assert.match(svg, /stroke="currentColor"/);
+	assert.match(svg, /stroke-width="1\.5"/);
+	assert.ok(Buffer.byteLength(svg) < 256 * 1024, 'icon must stay below the manifest limit');
 });
