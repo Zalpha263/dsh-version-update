@@ -1,6 +1,6 @@
 {
   "meta": {
-    "title": "Version & Updates",
-    "description": "Show the running dsh version and environment, resolve the official stable and Alpha channels, and generate an upgrade prompt for each."
+    "title": "Changelog",
+    "description": "Browse official dsh release notes grouped by Alpha preview and RC stable channels, with search, local-version standing, version comparison and offline cache."
   }
 }

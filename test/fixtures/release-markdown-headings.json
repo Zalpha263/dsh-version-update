@@ -1,0 +1,6 @@
+{
+  "tag_name": "dsh-v0.2.1-rc.3",
+  "published_at": "2026-10-23T15:26:39Z",
+  "html_url": "https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.1-rc.3",
+  "body": "[中文](#cn-v0.2.1-rc.3-community) | [English](#en-v0.2.1-rc.3-community)\r\n\r\n<h3 id=\"cn-v0.2.1-rc.3-community\">体验优化</h3>\r\n\r\n- 新增左侧栏、会话视图和右侧栏的「更多」菜单，方便浏览和创建插件。 @Yifffan, @imccyu\r\n- 修复切换会话后，点击「新会话」找不回未发送草稿的问题。 @imccyu\r\n\r\n### 其他变更\r\n\r\n- DeepSeek API Key 适配器的模型列表更新方式与账号登录模式保持一致。 @LegGasai\r\n\r\n<h3 id=\"en-v0.2.1-rc.3-community\">Improvements</h3>\r\n\r\n- Add More menus to the left sidebar, conversation views, and right sidebar for browsing and creating plugins. by @Yifffan, @imccyu\r\n- Fix New Session losing an unsent draft after switching sessions. by @imccyu\r\n\r\n### Chores\r\n\r\n- The DeepSeek API key adapter now updates its model list the same way as account sign-in. by @LegGasai\r\n\r\nFull Changelog: [dsh-v0.2.1-rc.2...dsh-v0.2.1-rc.3](https://github.com/deepseek-ai/deepseek-harness/compare/dsh-v0.2.1-rc.2...dsh-v0.2.1-rc.3)"
+}

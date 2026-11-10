@@ -1,19 +1,18 @@
 {
   "name": "dsh-version-update",
-  "version": "1.4.1",
-  "description": "版本与更新：在设置页显示 dsh 版本与环境信息，按 dist-tag 全量解析官方正式版与 Alpha 预览版并生成各自的升级提示词（dsh-version-update）。",
+  "version": "2.0.0",
+  "description": "更新日志：按 Alpha 预览版与 RC 稳定版分组、可折叠地浏览 dsh 官方版本变更（新增/优化/修复/其他），支持全文搜索、本机版本定位、版本区间对比与离线缓存。",
   "type": "module",
   "main": "lib/index.js",
   "icon": "./icon.svg",
   "exports": {
     ".": "./lib/index.js",
     "./client": "./lib/client.js",
-    "./version": "./lib/version.js",
     "./package.json": "./package.json",
     "./locale/*.json": "./locale/*.json"
   },
   "scripts": {
-    "test": "node test/version.test.mjs"
+    "test": "node test/changelog.test.mjs && node test/client-smoke.test.mjs"
   },
   "engines": {
     "dsh": ">=0.2.0-rc.1 <0.3.0-0"
@@ -36,9 +35,11 @@
     "dsh",
     "deepseek-harness",
     "web-ui",
+    "changelog",
+    "release-notes",
     "version",
-    "update",
     "alpha",
+    "rc",
     "plugin"
   ],
   "license": "MIT",
